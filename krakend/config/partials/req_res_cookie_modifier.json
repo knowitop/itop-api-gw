@@ -1,0 +1,12 @@
+{
+  "header.Blacklist": {
+    "scope": [
+      "request",
+      "response"
+    ],
+    "names": [
+      "Cookie",
+      "Set-Cookie"
+    ]
+  }
+}

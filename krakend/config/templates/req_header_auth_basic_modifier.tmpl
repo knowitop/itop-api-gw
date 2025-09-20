@@ -1,0 +1,9 @@
+{
+  "header.Modifier": {
+    "scope": [
+      "request"
+    ],
+    "name": "Authorization",
+    "value": "Basic {{ printf `%v:%v` .user .pwd | b64enc }}"
+  }
+}

@@ -1,0 +1,82 @@
+{{- $inputHeaders := list -}}
+{{- $headerModifiers := list "res_blacklist" -}}
+{{- if eq .auth.mode "token" -}}
+    {{- if .auth.internal -}}
+        {{- $headerModifiers = append $headerModifiers "auth_token" -}}
+    {{- else -}}
+        {{- $inputHeaders = append $inputHeaders "Auth-Token" -}}
+    {{- end -}}
+{{- else if eq .auth.mode "basic" -}}
+    {{- if .auth.internal -}}
+        {{- $headerModifiers = append $headerModifiers "auth_basic" -}}
+    {{- else -}}
+        {{- $inputHeaders = append $inputHeaders "Authorization" -}}
+    {{- end -}}
+{{- end -}}
+{{- if .auth.allowCookies -}}
+    {{- $inputHeaders = append $inputHeaders "Cookie" -}}
+{{- else -}}
+    {{- $headerModifiers = append $headerModifiers "remove_cookie" -}}
+{{- end -}}
+
+{
+    "endpoint": "{{ .endpoint }}",
+    "method": "{{ .method }}",
+    "output_encoding": "no-op",
+    "input_query_strings": {{ marshal .input_query_strings }},
+    {{- if $inputHeaders }}
+    "input_headers": ["{{ $inputHeaders | join `", "` }}"],
+    {{- end }}
+    "backend": [
+        {
+            "url_pattern": "{{ .basePath }}/webservices/rest.php?version=1.4&login_mode={{ .auth.mode }}",
+            "sd": "static",
+            "method": "POST",
+            "disable_host_sanitize": false,
+            "encoding": "no-op",
+            "extra_config": {
+                {{- if $headerModifiers }}
+                "modifier/martian": {
+                    "fifo.Group": {
+                        "scope": ["request", "response"],
+                        "modifiers": [
+                            {{- $first := true }}
+                            {{- if has "auth_token" $headerModifiers }}
+                                {{- if not $first}},{{ end }}
+                                {{ template "req_header_auth_token_modifier.tmpl" .auth.token }}
+                                {{- $first = false }}
+                            {{- end }}
+                            {{- if has "auth_basic" $headerModifiers }}
+                                {{- if not $first}},{{ end }}
+                                {{ template "req_header_auth_basic_modifier.tmpl" (dict "user" .auth.user "pwd" .auth.pwd) }}
+                                {{- $first = false }}
+                            {{- end }}
+                            {{- if has "remove_cookie" $headerModifiers }}
+                                {{- if not $first}},{{ end }}
+                                {{ include "req_res_cookie_modifier.json" }}
+                                {{- $first = false }}
+                            {{- end }}
+                            {{- if has "res_blacklist" $headerModifiers }}
+                                {{- if not $first}},{{ end }}
+                                {{ include "res_header_blacklist_modifier.json" }}
+                                {{- $first = false }}
+                            {{- end }}
+                        ]
+                    }
+                },
+                {{- end }}
+                "modifier/lua-backend": {
+                    "allow_open_libs": true,
+                    {{- if has (env "LUA_LIVE_RELOAD") (list "1" "true") }}"live": true,{{ end }}
+                    "sources": ["lua/script.lua", "lua/rxi-json.lua"],
+                    "md5": {
+                        "lua/script.lua": "25faffd456dc36856de2be35c884ea8c",
+                        "lua/rxi-json.lua": "99e51c5cdcfb9bd2bca4562a77397cfa"
+                    },
+                    "pre": "{{ .backend_req_script }}",
+                    "post": "{{ .backend_res_script }}"
+                }
+            }
+        }
+    ]
+}

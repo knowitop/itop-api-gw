@@ -1,15 +1,27 @@
+{{- if not (env "ITOP_HOSTS") -}}
+  {{- fail "ITOP_HOSTS environment variable is empty." -}}
+{{- end -}}
+{{- $itopHosts := env "ITOP_HOSTS" | nospace | splitList "," -}}
+{{- $basePath := empty (env "ITOP_BASE_PATH") | ternary "" (env "ITOP_BASE_PATH" | trimAll "/" | printf "/%s") -}}
+{{- $authMode := env "ITOP_AUTH_MODE" | trim -}}
+{{- $authUser := env "ITOP_AUTH_USER" | trim -}}
+{{- $authPwd := env "ITOP_AUTH_PWD" | trim -}}
+{{- $authToken := env "ITOP_AUTH_TOKEN" | trim -}}
+{{- $authInternal := or (and (eq $authMode "basic") (not (empty $authUser))) (and (eq $authMode "token") (not (empty $authToken))) -}}
+{{- $allowCookies := has (env "ALLOW_COOKIE_HEADERS") (list "1" "true") -}}
+{{- $auth := dict "mode" $authMode "user" $authUser "pwd" $authPwd "token" $authToken "internal" $authInternal "allowCookies" $allowCookies -}}
+{{- $corsAllowOrigins := env "CORS_ALLOW_ORIGINS" | nospace | splitList "," -}}
 {
-  "$schema": "https://www.krakend.io/schema/v3.json",
+  "$schema": "https://www.krakend.io/schema/v2.10/krakend.json",
   "version": 3,
   "name": "iTop REST API Gateway",
   "port": 8000,
   "cache_ttl": "300s",
   "timeout": "3s",
   "extra_config": {
+    {{- if $corsAllowOrigins }}
     "security/cors": {
-      "allow_origins": [
-        "*"
-      ],
+      "allow_origins": ["{{ $corsAllowOrigins | join `", "` }}"],
       "expose_headers": [
         "Content-Length"
       ],
@@ -17,16 +29,23 @@
       "allow_methods": [
         "GET",
         "POST",
-        "PUT",
+        "PATCH",
         "DELETE"
       ],
       "allow_headers": [
-        {{ if not (env "ITOP_AUTH_MODE") }}"Authorization",{{end}}
+        {{- if not $auth.internal }}
+            {{ if eq $auth.mode "token" }}"Auth-Token",{{ else if eq $auth.mode "basic" }}"Authorization",{{ end }}
+        {{- end }}
+        {{- if $auth.allowCookies }}
+            "Cookie",
+        {{- end }}
         "Origin",
         "Content-Type"
       ],
-      "allow_credentials": true
+      "allow_credentials": true,
+      "debug": true
     },
+    {{- end }}
     "telemetry/logging": {
       "level": "DEBUG",
       "prefix": "[KRAKEND]",
@@ -38,14 +57,12 @@
       "enabled": false
     }
   },
-  "host": [
-    "{{ env "ITOP_HOST" | nospace | splitList "," | join `", "` }}"
-  ],
+  "host": ["{{ $itopHosts | join `", "` }}"],
   "endpoints": [
-    {{ range $idx, $endpoint := .endpoints.itop_group }}
-    {{ if $idx }},{{ end }}
-      {{ template "itop_endpoint.tmpl" $endpoint }}
-    {{ end }}
+    {{- range $idx, $endpoint := .endpoints.itop_group -}}
+    {{- if $idx }},{{ end }}
+      {{ template "itop_endpoint.tmpl" (merge $endpoint (dict "auth" $auth "basePath" $basePath)) }}
+    {{- end -}}
   ],
   "output_encoding": "json",
   "disable_rest": true

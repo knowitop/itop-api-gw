@@ -34,7 +34,7 @@
     },
     {
       "endpoint": "/v1/{objectClass}/{objectId}",
-      "method": "PUT",
+      "method": "PATCH",
       "input_query_strings": [
         "output_fields",
         "api_comment"

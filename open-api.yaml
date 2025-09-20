@@ -1,12 +1,12 @@
 openapi: 3.1.0
 info:
   title: iTop REST API Gateway
-  version: 0.1.0
+  version: 0.2.0
   contact:
     name: Vladimir Kunin
-    url: https://github.com/knowitop/itop-krakend
+    url: https://github.com/knowitop/itop-api-gw
 servers:
-  - url: http://localhost:8080
+  - url: http://localhost:8000
 paths:
   /v1/{objectClass}:
     parameters:
@@ -138,7 +138,7 @@ paths:
           $ref: "#/components/responses/Error502"
         default:
           $ref: '#/components/responses/ErrorDefault'
-    put:
+    patch:
       operationId: updateObject
       summary: Update an object
       parameters:
@@ -422,10 +422,12 @@ components:
           description: Object class
           example: UserRequest
         key:
-          type: number
+          oneOf:
+            - type: string
+            - type: number
           format: integer
           description: Object ID
-          example: 45
+          example: "45"
     ObjectWithFieldsSchema:
       allOf:
         - $ref: '#/components/schemas/ObjectBaseSchema'
@@ -578,13 +580,13 @@ components:
       summary: External key fields example
       description: Specify external key fields as a number, a nested object or an OQL query
       value: {
-        "org_id": 10,
+        "org_id": 3,
         "caller_id": {
-          "email": "johndoe@acme.corp",
+          "email": "agatha.christie@demo.com",
           "status": "active",
-          "org_id": "10"
+          "org_id": "3"
         },
-        "service_id": "SELECT Service WHERE name = 'Office Support'",
+        "service_id": "SELECT Service WHERE name = 'Computers and peripherals'",
         "title": "New user request",
         "description": "Request description"
       }
@@ -593,5 +595,11 @@ components:
       type: http
       scheme: basic
       description: HTTP authentication, the iTop configuration parameter `allowed_login_types` must include the value `basic`.
+    tokenAuth:
+      type: apiKey
+      in: header
+      name: Auth-Token
+      description: Authentication by Token, the iTop configuration parameter `allowed_login_types` must include the value `token`.
 security:
   - basicAuth: []
+  - tokenAuth: []

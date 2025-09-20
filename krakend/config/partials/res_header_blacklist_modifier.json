@@ -1,0 +1,11 @@
+{
+  "header.Blacklist": {
+    "scope": [
+      "response"
+    ],
+    "names": [
+      "Access-Control-Allow-Origin",
+      "Server"
+    ]
+  }
+}
