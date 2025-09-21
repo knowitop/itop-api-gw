@@ -4,8 +4,8 @@
 FROM krakend:2.10.2
 
 LABEL version="0.2.0"
-LABEL description="Krakend API Gateway transforms the Combodo iTop RPC-style API into a RESTful API."
-LABEL org.opencontainers.image.source = "https://github.com/knowitop/itop-api-gw"
+LABEL org.opencontainers.image.description="Krakend API Gateway transforms the Combodo iTop RPC-style API into a RESTful API."
+LABEL org.opencontainers.image.source="https://github.com/knowitop/itop-api-gw"
 
 ENV KRAKEND_NAME="iTop REST API Gateway" \
     USAGE_DISABLE=1 \
