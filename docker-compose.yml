@@ -3,8 +3,9 @@ name: itop-api-gw
 services:
 
   api-gw:
-    build:
-      dockerfile: Dockerfile
+    image: ghcr.io/knowitop/itop-api-gw:edge
+    # build:
+    #   dockerfile: Dockerfile
     environment:
       ITOP_HOSTS: http://itop
       CORS_ALLOW_ORIGINS: "http://localhost:8080" # swagger ui
